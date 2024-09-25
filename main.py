@@ -4,11 +4,12 @@ import numpy as np
 import imgui
 from imgui.integrations.glfw import GlfwRenderer
 import cv2
-from utils import create_shader_program, load_texture
+from utils import load_texture, process_user_input, update_delta_time
 from pyrr import Matrix44
 from camera import Camera
 from primitives import create_primitive_rectangle
 from GridBuilder import GridBuilder
+from PointRenderer import PointRenderer
 
 Width = 800
 Height = 600
@@ -35,15 +36,12 @@ glfw.set_framebuffer_size_callback(window, framebuffer_size_callback)
 imgui.create_context()
 imgui_renderer = GlfwRenderer(window)
 
-shader_program = create_shader_program('shaders/vertex.glsl', 'shaders/fragment.glsl')
-
 camera = Camera(position=[-3, 3, 9], yaw=-51, pitch=-13)
 
 last_x, last_y = 400, 300
 first_mouse = True
 
 mouse_check = True
-was_outside_window = True
 
 def mouse_callback(window, xpos, ypos):
     global last_x, last_y, first_mouse
@@ -68,47 +66,33 @@ glfw.set_cursor_pos_callback(window, mouse_callback)
 glfw.set_scroll_callback(window, scroll_callback)
 
 grid_build = GridBuilder(3, 3)
-grid_build.load_program(shader_program)
-
+point = PointRenderer()
 # Main application loop
 last_frame_time = 0.0
 
-glPointSize(5.0)   # Point size of 5 pixels
+glPointSize(50.0)   # Point size of 5 pixels
 glLineWidth(1.0)   # Line width of 2 pixels
 glEnable(GL_DEPTH_TEST)
 
 glEnable(GL_LINE_SMOOTH)
+glEnable(GL_POINT_SMOOTH)
 glHint(GL_LINE_SMOOTH_HINT, GL_NICEST)
 
+last_frame_time = 0.0
+
 while not glfw.window_should_close(window):
-    # Poll for and process events
+
+    last_frame_time, delta_time = update_delta_time(last_frame_time)
+
+    process_user_input(window, camera, delta_time)
 
     glfw.poll_events()
     imgui_renderer.process_inputs()
-    
-    # Time management
-    current_frame_time = glfw.get_time()
-    delta_time = current_frame_time - last_frame_time
-    last_frame_time = current_frame_time
-
-    # Process input
-    if glfw.get_key(window, glfw.KEY_W) == glfw.PRESS:
-        camera.process_keyboard("FORWARD", delta_time)
-    if glfw.get_key(window, glfw.KEY_S) == glfw.PRESS:
-        camera.process_keyboard("BACKWARD", delta_time)
-    if glfw.get_key(window, glfw.KEY_A) == glfw.PRESS:
-        camera.process_keyboard("LEFT", delta_time)
-    if glfw.get_key(window, glfw.KEY_D) == glfw.PRESS:
-        camera.process_keyboard("RIGHT", delta_time)
 
     view = camera.get_view_matrix()
     projection = Matrix44.perspective_projection(camera.zoom, Width / Height, 0.1, 1000.0)
   
-    # Rendering
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
 
-    grid_build.Render(view, projection)
-    
   # Start a new ImGui frame
     imgui.new_frame()
     
@@ -123,7 +107,12 @@ while not glfw.window_should_close(window):
     if imgui.button("Reload Texture"):
         pass  # Logic for reloading the texture would go here
     imgui.end()
-   
+
+    # Rendering
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
+
+    grid_build.Render(view, projection)
+    point.Render(view, projection)
     # Render ImGui
     imgui.render()
     imgui_renderer.render(imgui.get_draw_data())
@@ -132,8 +121,6 @@ while not glfw.window_should_close(window):
     glfw.swap_buffers(window)
 
 # Clean up
-
-glDeleteProgram(shader_program)
 
 imgui_renderer.shutdown()
 glfw.terminate()

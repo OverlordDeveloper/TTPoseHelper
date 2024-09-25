@@ -1,34 +1,7 @@
 
 from OpenGL.GL import *
+import glfw
 import cv2
-# Compile shaders and link them
-def compile_shader(source, shader_type):
-    shader = glCreateShader(shader_type)
-    glShaderSource(shader, source)
-    glCompileShader(shader)
-    if not glGetShaderiv(shader, GL_COMPILE_STATUS):
-        raise RuntimeError(glGetShaderInfoLog(shader))
-    return shader
-
-def create_shader_program(vertex_path, fragment_path):
-
-    with open(vertex_path, 'r') as file:
-        vertex_source = file.read().rstrip()
-
-    with open(fragment_path, 'r') as file:   
-        fragment_source = file.read().rstrip()
-
-    vertex = compile_shader(vertex_source, GL_VERTEX_SHADER)
-    fragment = compile_shader(fragment_source, GL_FRAGMENT_SHADER)
-    program = glCreateProgram()
-    glAttachShader(program, vertex)
-    glAttachShader(program, fragment)
-    glLinkProgram(program)
-    if not glGetProgramiv(program, GL_LINK_STATUS):
-        raise RuntimeError(glGetProgramInfoLog(program))
-    glDeleteShader(vertex)
-    glDeleteShader(fragment)
-    return program
 
 # Function to load a texture using OpenCV
 def load_texture(path, width = 256, height = 256):
@@ -60,3 +33,22 @@ def load_texture(path, width = 256, height = 256):
     glBindTexture(GL_TEXTURE_2D, 0)  # Unbind texture after configuration
     return texture
 
+
+def process_user_input(window, camera, delta_time):
+
+    if glfw.get_key(window, glfw.KEY_W) == glfw.PRESS:
+        camera.process_keyboard("FORWARD", delta_time)
+    if glfw.get_key(window, glfw.KEY_S) == glfw.PRESS:
+        camera.process_keyboard("BACKWARD", delta_time)
+    if glfw.get_key(window, glfw.KEY_A) == glfw.PRESS:
+        camera.process_keyboard("LEFT", delta_time)
+    if glfw.get_key(window, glfw.KEY_D) == glfw.PRESS:
+        camera.process_keyboard("RIGHT", delta_time)
+
+
+def update_delta_time(last_frame_time):
+    current_frame_time = glfw.get_time()
+    delta_time = current_frame_time - last_frame_time
+    last_frame_time = current_frame_time
+    
+    return last_frame_time, delta_time
