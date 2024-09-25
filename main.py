@@ -10,6 +10,10 @@ from camera import Camera
 from primitives import create_primitive_rectangle
 from GridBuilder import GridBuilder
 from PointRenderer import PointRenderer
+from skeleton import Skeleton
+import time 
+target_fps = 60
+frame_duration = 1.0 / target_fps
 
 Width = 800
 Height = 600
@@ -71,7 +75,7 @@ point = PointRenderer()
 last_frame_time = 0.0
 
 glPointSize(50.0)   # Point size of 5 pixels
-glLineWidth(1.0)   # Line width of 2 pixels
+   # Line width of 2 pixels
 glEnable(GL_DEPTH_TEST)
 
 glEnable(GL_LINE_SMOOTH)
@@ -79,8 +83,11 @@ glEnable(GL_POINT_SMOOTH)
 glHint(GL_LINE_SMOOTH_HINT, GL_NICEST)
 
 last_frame_time = 0.0
+sk = Skeleton()
 
 while not glfw.window_should_close(window):
+
+    frame_start_time = time.time()
 
     last_frame_time, delta_time = update_delta_time(last_frame_time)
 
@@ -113,12 +120,20 @@ while not glfw.window_should_close(window):
 
     grid_build.Render(view, projection)
     point.Render(view, projection)
+    sk.Render(view, projection)
     # Render ImGui
     imgui.render()
     imgui_renderer.render(imgui.get_draw_data())
 
 
     glfw.swap_buffers(window)
+
+    frame_end_time = time.time()
+    frame_time = frame_end_time - frame_start_time
+
+    # Sleep to maintain target FPS if the frame rendered faster than the target frame duration
+    if frame_time < frame_duration:
+        time.sleep(frame_duration - frame_time)
 
 # Clean up
 

@@ -29,6 +29,8 @@ class GridBuilder:
             self.positions.append(end)
 
     def Render(self, view, projection):
+        
+        glLineWidth(1.0)
         # Set the color of the grid lines
         glColor3f(self.color[0], self.color[1], self.color[2])
 

@@ -4,7 +4,7 @@ from OpenGL.GL import *
 import numpy as np
 
 class Skeleton:
-    def __init(self):
+    def __init__(self):
         self.keys = ["LEFT_SHOULDER", "RIGHT_SHOULDER", "LEFT_ELBOW", "RIGHT_ELBOW","LEFT_WRIST", "RIGHT_WRIST",
                      "LEFT_HIP", "RIGHT_HIP", "LEFT_KNEE", "RIGHT_KNEE", "LEFT_ANKLE", "RIGHT_ANKLE"]
         
@@ -12,6 +12,9 @@ class Skeleton:
         
         self.modelMatrix = Matrix44.identity()
         self.viewMatrix = Matrix44.identity()
+        self.translationMatrix = Matrix44.identity()
+        self.rotationMatrix = Matrix44.identity()
+        self.scaleMatrix = Matrix44.identity()
 
         self.jointSize = 10.0
         self.lineSize = 10.0
@@ -23,6 +26,38 @@ class Skeleton:
         self.SetRotation(Vector3((0, 0, 0)))
         self.SetScale(Vector3((1, 1, 1)))
        
+    def _update_model_matrix(self):
+
+        self.modelMatrix = self.translationMatrix @ self.rotationMatrix @ self.scaleMatrix
+    
+    def SetPose(self, pose):
+
+        for k in pose.keys():
+            self.pose[k] = pose[k]
+        
+    def SetPosition(self, pos):
+        self.position = pos
+        self.translationMatrix = Matrix44.from_translation(self.position)
+
+        self._update_model_matrix()
+
+    def SetRotation(self, rot):
+        self.rotation = rot
+
+        rotation_x_matrix = Matrix44.from_x_rotation(self.rotation.x)
+        rotation_y_matrix = Matrix44.from_y_rotation(self.rotation.y)
+        rotation_z_matrix = Matrix44.from_z_rotation(self.rotation.z)
+        
+        self.rotationMatrix = rotation_z_matrix @ rotation_y_matrix @ rotation_x_matrix
+
+        self._update_model_matrix()
+
+    def SetScale(self, scale):
+        self.scale = scale
+        self.scaleMatrix = Matrix44.from_scale(self.scale)
+        
+        self._update_model_matrix()
+
     def Render(self, view, projection):
 
           # Apply the view and projection matrices using legacy OpenGL
@@ -30,7 +65,7 @@ class Skeleton:
         glLoadMatrixf(projection)  # Load the projection matrix
 
         glMatrixMode(GL_MODELVIEW)
-        glLoadMatrixf(self.modelMatrix @ view)  # Load the model view matrix
+        glLoadMatrixf(view)  # Load the model view matrix
         
         glLineWidth(self.lineSize) 
         # Begin rendering the lines
@@ -86,35 +121,3 @@ class Skeleton:
 
         glEnd()
         pass
-
-    def _update_model_matrix(self):
-
-        self.modelMatrix = self.translationMatrix @ self.rotationMatrix @ self.scaleMatrix
-    
-    def SetPose(self, pose):
-
-        for k in pose.keys():
-            self.pose[k] = pose[k]
-        
-    def SetPosition(self, pos):
-        self.position = pos
-        self.translationMatrix = Matrix44.from_translation(self.position)
-
-        self._update_model_matrix()
-
-    def SetRotation(self, rot):
-        self.rotation = rot
-
-        rotation_x_matrix = Matrix44.from_x_rotation(self.rotation.x)
-        rotation_y_matrix = Matrix44.from_y_rotation(self.rotation.y)
-        rotation_z_matrix = Matrix44.from_z_rotation(self.rotation.z)
-        
-        self.rotationMatrix = rotation_z_matrix @ rotation_y_matrix @ rotation_x_matrix
-
-        self._update_model_matrix()
-
-    def SetScale(self, scale):
-        self.scale = scale
-        self.scaleMatrix = Matrix44.from_scale(self.scale)
-        
-        self._update_model_matrix()
