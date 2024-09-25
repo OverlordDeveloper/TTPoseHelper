@@ -14,7 +14,9 @@ class PoseExtractor:
                                 min_detection_confidence=0.5)
         
         self.poses = []
-
+        self.keys = ["LEFT_SHOULDER", "RIGHT_SHOULDER", "LEFT_ELBOW", "RIGHT_ELBOW","LEFT_WRIST", "RIGHT_WRIST",
+                     "LEFT_HIP", "RIGHT_HIP", "LEFT_KNEE", "RIGHT_KNEE", "LEFT_ANKLE", "RIGHT_ANKLE"]
+        
     def load_video(self, path):
 
         cap = cv2.VideoCapture(path)
@@ -56,17 +58,46 @@ class PoseExtractor:
             frame_index = len(self.frame_buffer) - 1
 
 
+        if len(self.poses) == len(self.frame_buffer) and len(self.frame_buffer) > 0:
+            
+            frame_pose = self._compute_frame_pose(self.frame_buffer[frame_index])
+            
+            return frame_pose
 
+
+    def _compute_frame_pose(self, frame):
+
+        frame_pose = {key : [0, 0, 0] for key in self.keys}
+
+        frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+
+        results = self.pose.process(frame_rgb)
+
+        if results.pose_landmarks:
+            
+                for key in self.keys:
+
+                    landmark = results.pose_landmarks.landmark[getattr(mp_pose.PoseLandmark, key)]
+                    h, w, _ = frame.shape
+                    cx, cy = int(landmark.x * w), int(landmark.y * h)
+                    cz = landmark.z * w 
+
+                    frame_pose[key] = [cx, cy, cz]
+
+        return frame_pose
+    
     def _compute_all_poses(self):
+
+        pose_array = []
 
         if self.frame_buffer is None:
             return
         
         for frame in self.frame_buffer:
 
-            frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            frame_pose = self._compute_frame_pose(frame)
 
-            results = self.pose.process(frame_rgb)
+            pose_array.append(frame_pose)
 
-            if results.pose_landmarks:
-                
+        self.poses = np.array(pose_array)
+        
